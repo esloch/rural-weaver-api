@@ -19,3 +19,18 @@ class PaymentSettingRead(BaseModel):
     pix_copy_paste_hash: str
     qr_code_image_url: HttpUrl | None
     is_active: bool
+
+
+class PaymentSettingUpdate(BaseModel):
+    """Editable payment settings payload."""
+
+    provider: str = "pix_manual"
+    pix_key: str
+    pix_key_type: str
+    recipient_name: str
+    recipient_document: str
+    bank_name: str
+    payment_instructions: str
+    pix_copy_paste_hash: str
+    qr_code_image_url: HttpUrl | None = None
+    is_active: bool = True

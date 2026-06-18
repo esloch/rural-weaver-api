@@ -19,3 +19,15 @@ class ProductRead(BaseModel):
     stock_quantity: Decimal
     image_url: HttpUrl | None
     is_active: bool
+
+
+class BasketTypeRead(BaseModel):
+    """Public basket type representation."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    description: str | None
+    base_price: Decimal
+    is_active: bool

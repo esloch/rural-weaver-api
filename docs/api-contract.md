@@ -10,6 +10,7 @@ Base prefix:
 
 ```text
 GET /health
+HEAD /health
 GET /products
 GET /payment-settings/active
 POST /orders
