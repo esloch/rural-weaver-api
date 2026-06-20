@@ -6,6 +6,7 @@ from apps.api.app.api.routes import (
     campaigns,
     health,
     orders,
+    payment_reconciliation,
     payments,
     producer,
     products,
@@ -30,6 +31,11 @@ api_router.include_router(
 )
 api_router.include_router(orders.router, prefix="/orders", tags=["orders"])
 api_router.include_router(settlements.router, prefix="/admin", tags=["admin-settlements"])
+api_router.include_router(
+    payment_reconciliation.router,
+    prefix="/admin",
+    tags=["admin-payment-reconciliation"],
+)
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(
     producer.router,
