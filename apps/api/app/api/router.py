@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from apps.api.app.api.routes import (
     admin,
+    admin_campaigns,
     baskets,
     campaigns,
     health,
@@ -35,6 +36,11 @@ api_router.include_router(
     payment_reconciliation.router,
     prefix="/admin",
     tags=["admin-payment-reconciliation"],
+)
+api_router.include_router(
+    admin_campaigns.router,
+    prefix="/admin",
+    tags=["admin-campaigns"],
 )
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
 api_router.include_router(
