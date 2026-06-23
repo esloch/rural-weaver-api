@@ -31,6 +31,8 @@ GET /admin/payment-settings
 PATCH /admin/payment-settings
 ```
 
+Admin product create and update now accept either camelCase or snake_case payload keys. Blank `image_url` values are normalized to `null`. When `producer_id` is omitted, the MVP uses the first active producer until admin RBAC and producer assignment are expanded.
+
 ## Producer
 
 ```text

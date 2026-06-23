@@ -18,7 +18,7 @@ from apps.api.app.schemas.payments import (
     PaymentSettingRead,
     PaymentSettingUpdate,
 )
-from apps.api.app.schemas.products import ProductRead
+from apps.api.app.schemas.products import ProductCreate, ProductRead, ProductUpdate
 
 router = APIRouter()
 
@@ -42,6 +42,53 @@ def list_admin_products(db: Session = Depends(get_db)) -> list[ProductRead]:
     """List all products for admin screens."""
 
     return AdminRepository(db).list_products()
+
+
+@router.post("/products", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
+def create_admin_product(
+    payload: ProductCreate,
+    db: Session = Depends(get_db),
+) -> ProductRead:
+    """Create a new product for admin screens."""
+
+    try:
+        product = AdminRepository(db).create_product(payload)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.patch("/products/{product_id}", response_model=ProductRead)
+def update_admin_product(
+    product_id: UUID,
+    payload: ProductUpdate,
+    db: Session = Depends(get_db),
+) -> ProductRead:
+    """Update an existing product for admin screens."""
+
+    try:
+        product = AdminRepository(db).update_product(product_id, payload)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if product is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found.",
+        )
+
+    db.commit()
+    db.refresh(product)
+    return product
 
 
 @router.get("/inventory", response_model=AdminInventoryRead)
