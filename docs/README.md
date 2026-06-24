@@ -11,3 +11,7 @@ docs/operations/     Deployment, data import and release guides
 ```
 
 Before any Codex CLI task, read `AGENTS.md`, the architecture docs, the relevant phase document and `docs/planning/po-followup.md`.
+
+Current Phase 7 backend summary:
+
+- `docs/phases/phase-7-state-of-art.md`

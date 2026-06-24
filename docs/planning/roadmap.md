@@ -1,5 +1,9 @@
 # Roadmap
 
+Reference summary:
+
+- `docs/phases/phase-7-state-of-art.md`
+
 Completed backend phases:
 
 ```text
