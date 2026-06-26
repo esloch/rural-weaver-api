@@ -38,6 +38,12 @@ class Order(UUIDMixin, TimestampMixin, Base):
         String(32),
         default="pending",
     )
+    order_number: Mapped[str | None] = mapped_column(
+        String(32),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
     submitted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
@@ -59,6 +65,9 @@ class Order(UUIDMixin, TimestampMixin, Base):
     # Phase 6.2 delivery/admin details from spreadsheets.
     neighborhood: Mapped[str | None] = mapped_column(String(120), nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    state: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    postal_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(120), nullable=True)
     complement: Mapped[str | None] = mapped_column(Text, nullable=True)
     delivery_agent: Mapped[str | None] = mapped_column(String(120), nullable=True)
 

@@ -2,14 +2,17 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 from apps.api.app.models.campaign import CampaignProduct, SalesCampaign
+from apps.api.app.models.customer import Customer
 from apps.api.app.models.order import Order, OrderItem
 from apps.api.app.models.payment_method import PaymentMethod
 from apps.api.app.models.product import BasketType, Product
 from apps.api.app.models.stock import StockMovement
+from apps.api.app.repositories.customers import CustomerRepository
 from apps.api.app.schemas.orders import OrderCreate
 from packages.business_rules.orders import (
     calculate_item_total,
@@ -31,6 +34,21 @@ class OrderRepository:
             raise ValueError("Order must contain at least one item.")
 
         campaign_id = payload.campaign_id or self._get_default_campaign_id()
+        customer = self._resolve_customer(payload)
+        customer_name, customer_phone, customer_email = self._resolve_customer_snapshots(
+            payload,
+            customer,
+        )
+        (
+            address,
+            neighborhood,
+            city,
+            state,
+            postal_code,
+            country,
+            complement,
+        ) = self._resolve_delivery_snapshots(payload)
+
         order_items: list[OrderItem] = []
         subtotal = ZERO
 
@@ -159,23 +177,27 @@ class OrderRepository:
 
         order = Order(
             campaign_id=campaign_id,
-            customer_id=payload.customer_id,
+            customer_id=customer.id if customer else payload.customer_id,
             pickup_point_id=payload.pickup_point_id,
             delivery_zone_id=payload.delivery_zone_id,
             payment_method_id=payload.payment_method_id,
             source="web",
             confirmation_status="pending",
+            order_number=self._next_order_number(),
             submitted_at=datetime.now(UTC),
             confirmed_at=None,
-            customer_name=payload.customer_name,
-            customer_phone=payload.customer_phone,
-            customer_email=payload.customer_email,
+            customer_name=customer_name,
+            customer_phone=customer_phone,
+            customer_email=customer_email,
             delivery_type=payload.delivery_type,
             pickup_point=payload.pickup_point,
-            address=payload.address,
-            neighborhood=payload.neighborhood,
-            city=payload.city,
-            complement=payload.complement,
+            address=address,
+            neighborhood=neighborhood,
+            city=city,
+            state=state,
+            postal_code=postal_code,
+            country=country,
+            complement=complement,
             delivery_agent=payload.delivery_agent,
             status="submitted",
             payment_method=payment_method,
@@ -197,6 +219,69 @@ class OrderRepository:
         self.db.flush()
         return order
 
+    def _resolve_customer(self, payload: OrderCreate) -> Customer | None:
+        customer_repo = CustomerRepository(self.db)
+        if payload.has_registered_customer_payload():
+            return customer_repo.upsert_from_order(payload)
+
+        if payload.customer_id is None:
+            return None
+
+        customer = customer_repo.get_by_id(payload.customer_id)
+        if customer is None:
+            raise ValueError("Customer not found.")
+        return customer
+
+    def _resolve_customer_snapshots(
+        self,
+        payload: OrderCreate,
+        customer: Customer | None,
+    ) -> tuple[str, str, str | None]:
+        if customer is not None:
+            return (
+                customer.full_name,
+                customer.phone_e164 or customer.phone,
+                customer.email,
+            )
+
+        if not payload.customer_name:
+            raise ValueError(
+                "customer_name is required when customer identity is not provided.",
+            )
+        if not payload.customer_phone:
+            raise ValueError(
+                "customer_phone is required when customer identity is not provided.",
+            )
+
+        return (
+            payload.customer_name,
+            payload.customer_phone,
+            payload.customer_email,
+        )
+
+    def _resolve_delivery_snapshots(
+        self,
+        payload: OrderCreate,
+    ) -> tuple[str | None, str | None, str | None, str | None, str | None, str | None, str | None]:
+        address = payload.address
+        complement = payload.complement
+        if payload.address_line and payload.address_number:
+            address = f"{payload.address_line.strip()}, {payload.address_number.strip()}"
+            complement = payload.address_complement or payload.complement
+
+        if payload.delivery_type == "delivery" and not address:
+            raise ValueError("delivery address is required for delivery orders.")
+
+        return (
+            address,
+            payload.neighborhood,
+            payload.city,
+            payload.state,
+            payload.postal_code,
+            payload.country,
+            complement,
+        )
+
     def _calculate_payment_fee(
         self,
         payment_method_id: UUID | None,
@@ -213,6 +298,15 @@ class OrderRepository:
         percent = method.fee_percent or ZERO
         variable = gross_total * percent / Decimal("100")
         return (fixed + variable).quantize(Decimal("0.01"))
+
+    def _next_order_number(self) -> str:
+        try:
+            result = self.db.execute(text("SELECT nextval('order_number_seq')"))
+            number = int(result.scalar_one())
+        except DBAPIError:
+            stmt = select(func.count(Order.id))
+            number = int(self.db.execute(stmt).scalar_one()) + 1
+        return f"PED-{number:06d}"
 
     def _get_default_campaign_id(self) -> UUID | None:
         stmt = (

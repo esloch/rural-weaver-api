@@ -24,6 +24,67 @@ GET /reference/subscription-plans
 
 Expected seeded counts: pickup-points 6, delivery-zones 4, payment-methods 4, subscription-plans 6.
 
+## Public order endpoint
+
+```text
+POST /orders
+```
+
+Phase 7.2.3 backend foundation adds registered customer identity support to public order creation.
+
+Request direction:
+
+```text
+customer or top-level fields
+- first_name / firstName
+- last_name / lastName
+- cpf
+- email
+- phone_country_code / phoneCountryCode
+- phone_area_code / phoneAreaCode
+- phone_number / phoneNumber
+
+delivery_address or deliveryAddress for delivery orders
+- address_line / addressLine
+- address_number / addressNumber
+- address_complement / addressComplement
+- neighborhood
+- city
+- state
+- postal_code / postalCode
+- country
+```
+
+Response direction:
+
+```text
+- id
+- order_number
+- customer_id
+- customer_name
+- customer_phone
+- customer_email
+- total
+- status
+- payment_status
+- created_at
+```
+
+Validation direction:
+
+- invalid CPF returns validation error
+- missing first name returns validation error
+- missing last name returns validation error
+- missing email returns validation error
+- invalid email returns validation error
+- missing phone country code returns validation error
+- missing DDD for Brazil returns validation error
+- delivery without address returns validation error
+
+Compatibility note:
+
+Legacy snapshot-only order payloads remain temporarily accepted while the frontend transitions to the registered-customer flow. They are now deprecated for real stock-reserving production use.
+
 ## Admin campaign endpoints
 
 ```text

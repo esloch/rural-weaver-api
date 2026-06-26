@@ -3,13 +3,15 @@
 ## High priority
 
 - Complete frontend Phase 7.2.
-- Deploy frontend to VPS.
+- Roll out frontend support for the Phase 7.2.3 registered customer order payload.
 - Validate frontend against production API.
 - Import real pricing from spreadsheets.
 - Compare settlement totals with Alice's spreadsheet.
 
 ## Medium priority
 
+- Remove deprecated legacy anonymous order payload support after frontend rollout.
+- Add normalized `CustomerAddress` if address reuse becomes operationally necessary.
 - Campaign closing workflow.
 - Better financial adjustment categories.
 - Payment confirmation notes required for cancellations.

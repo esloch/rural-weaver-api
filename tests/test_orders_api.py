@@ -3,6 +3,7 @@ from decimal import Decimal
 from fastapi.testclient import TestClient
 
 from apps.api.app.main import app
+from apps.api.app.schemas.orders import OrderCreate
 
 client = TestClient(app)
 
@@ -23,10 +24,47 @@ def test_order_item_payload_accepts_camel_case() -> None:
         ],
     }
 
-    # This test validates request-shape compatibility. It may return 400
-    # because the product does not exist in the in-memory test DB.
     response = client.post("/api/orders", json=payload)
     assert response.status_code in {201, 400}
+
+
+def test_order_schema_accepts_nested_customer_identity() -> None:
+    payload = {
+        "customer": {
+            "firstName": "Ana",
+            "lastName": "Silva",
+            "cpf": "529.982.247-25",
+            "email": "ANA@EXAMPLE.COM",
+            "phoneCountryCode": "+55",
+            "phoneAreaCode": "48",
+            "phoneNumber": "99999-0000",
+        },
+        "deliveryType": "delivery",
+        "deliveryAddress": {
+            "addressLine": "Rua das Flores",
+            "addressNumber": "10",
+            "addressComplement": "Casa",
+            "neighborhood": "Centro",
+            "city": "Florianópolis",
+            "state": "SC",
+            "postalCode": "88000-000",
+            "country": "BR",
+        },
+        "items": [
+            {
+                "itemType": "product",
+                "productId": "00000000-0000-0000-0000-000000000001",
+                "quantity": Decimal("1"),
+            },
+        ],
+    }
+
+    order = OrderCreate.model_validate(payload)
+    assert order.first_name == "Ana"
+    assert order.last_name == "Silva"
+    assert order.address_line == "Rua das Flores"
+    assert order.address_number == "10"
+    assert order.country == "BR"
 
 
 def test_stock_adjustment_shape_accepts_camel_case() -> None:

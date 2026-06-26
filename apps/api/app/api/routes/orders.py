@@ -5,6 +5,7 @@ from apps.api.app.db.session import get_db
 from apps.api.app.repositories.admin import AdminRepository
 from apps.api.app.repositories.orders import OrderRepository
 from apps.api.app.schemas.orders import OrderCreate, OrderRead
+from packages.business_rules.customers import CustomerValidationError
 
 router = APIRouter()
 
@@ -27,6 +28,11 @@ def create_order(
 
     try:
         order = OrderRepository(db).create(payload)
+    except CustomerValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

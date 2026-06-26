@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,3 +19,29 @@ class Customer(UUIDMixin, TimestampMixin, Base):
     neighborhood: Mapped[str | None] = mapped_column(String(120), nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Phase 7.2.3 customer identity foundation.
+    tenant_id: Mapped[UUID | None] = mapped_column(nullable=True, index=True)
+    customer_number: Mapped[str | None] = mapped_column(
+        String(32),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+    first_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    cpf_normalized: Mapped[str | None] = mapped_column(
+        String(32),
+        nullable=True,
+        index=True,
+    )
+    phone_country_code: Mapped[str | None] = mapped_column(
+        String(8),
+        nullable=True,
+    )
+    phone_area_code: Mapped[str | None] = mapped_column(
+        String(8),
+        nullable=True,
+    )
+    phone_number: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    phone_e164: Mapped[str | None] = mapped_column(String(32), nullable=True)

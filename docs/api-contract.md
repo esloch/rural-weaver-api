@@ -16,6 +16,41 @@ GET /payment-settings/active
 POST /orders
 ```
 
+`POST /orders` now supports a Phase 7.2.3 customer identity payload for registered order creation.
+
+Implemented backend direction:
+
+- internal IDs stay UUID-based
+- `orders.order_number` is the human-facing order reference
+- `orders.customer_id` links to `customers.id`
+- customer identity can be sent with either camelCase or snake_case keys
+- legacy snapshot-only payloads remain temporarily accepted for backward compatibility until the frontend rollout is coordinated
+
+Supported identity fields for the registered flow:
+
+```text
+customer / top-level
+- first_name / firstName
+- last_name / lastName
+- cpf
+- email
+- phone_country_code / phoneCountryCode
+- phone_area_code / phoneAreaCode
+- phone_number / phoneNumber
+
+delivery_address / deliveryAddress when delivery
+- address_line / addressLine
+- address_number / addressNumber
+- address_complement / addressComplement
+- neighborhood
+- city
+- state
+- postal_code / postalCode
+- country
+```
+
+Registered-order validation now rejects invalid CPF, invalid email, missing phone country code, missing DDD for Brazil, and missing delivery address for delivery orders. Successful order creation returns `order_number` and `customer_id` in addition to the existing order snapshot fields.
+
 ## Admin
 
 ```text

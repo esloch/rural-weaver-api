@@ -9,6 +9,7 @@ It is the concise backend reference for:
 - production API context
 - Phase 7.1 payment reconciliation backend
 - Phase 7.2 backend support for frontend admin operations
+- Phase 7.2.3 customer identity registration foundation
 - admin product create/update backend contract
 - known backend gaps
 - recommended next backend tasks
@@ -86,6 +87,40 @@ This backend support underpins frontend pages such as:
 - `/admin/payment-settings`
 - `/admin/campaigns/:campaignId`
 
+## Phase 7.2.3 — Customer Identity Registration Foundation
+
+Relevant backend goal:
+
+- create or update a registered customer before real stock reservation
+- keep UUID internal primary keys
+- add human-facing `customer_number` and `order_number`
+- preserve order snapshot fields for historical support and fulfillment context
+
+Implemented backend foundation:
+
+- extended `customers` with `customer_number`, `first_name`, `last_name`, `cpf_normalized`, normalized phone fields, and nullable `tenant_id`
+- extended `orders` with `order_number` and structured delivery snapshot fields `state`, `postal_code`, and `country`
+- added CPF, email, and phone normalization/validation helpers
+- added customer upsert before order creation when the registered identity payload is used
+- linked created orders to `customer_id`
+- generated human-facing `CLI-000001` / `PED-000001` style references through database sequences
+- kept legacy snapshot-only order payloads temporarily accepted for compatibility until the frontend rollout is coordinated
+
+Behavior notes:
+
+- registered customer validation runs before stock reservation
+- invalid CPF, missing name parts, invalid email, missing phone country code, missing Brazilian DDD, and missing delivery address for delivery orders now return validation errors
+- public responses expose `order_number` and `customer_id` but do not expose CPF
+- `customer_name`, `customer_phone`, `customer_email`, and address snapshots remain on orders
+
+Validation run for this backend task:
+
+- host `python3 -m compileall apps tests` passed after sandbox escalation
+- container `docker compose exec api python -m compileall apps tests` compiled the application code and reported that `tests/` is not mounted in the container image
+- container `docker compose exec api pytest` ran in the container image but collected `0` tests because the image does not include the repo `tests/` directory
+- container `docker compose exec api alembic upgrade head` succeeded
+- OpenAPI inspection was performed against the container runtime for `/api/orders` schema changes
+
 ## Admin Product Create/Update
 
 Relevant backend commit:
@@ -120,13 +155,6 @@ Implementation notes:
 - allow category as a free-form string
 - allow products with empty or missing category to be updated
 
-Validation:
-
-- `python3 -m compileall apps tests` passed
-- `python3 -m pytest` could not run because `pytest` is not installed in the available environment
-- OpenAPI now exposes the new product mutation routes
-- production browser validation still needs confirmation unless it has already been completed separately
-
 ## Known Backend Gaps
 
 - `/api/admin/orders` does not implement query filtering for `status` or `payment_status`
@@ -135,19 +163,23 @@ Validation:
 - backend test environment should include `pytest` or a documented test runner setup
 - real producer, cost, sale, and margin import/backfill remains needed
 - duplicate campaign product prevention should eventually be enforced backend-side with uniqueness validation
+- legacy anonymous order payload support should be removed once the frontend customer identity rollout is complete
 - app-level authentication and authorization remain future work
+- normalized `CustomerAddress` is still follow-up work
 
 ## Next Recommended Backend Tasks
 
-1. Add backend filter support for admin orders only if needed.
-2. Add duplicate campaign product validation.
-3. Improve real pricing and producer import/backfill.
-4. Add and validate product create/update tests once a pytest-capable environment is available.
-5. Support future admin manual order creation if frontend needs additional admin-specific behavior.
-6. Add campaign closing workflow endpoints later.
+1. Coordinate the frontend rollout for the registered customer payload.
+2. Add a normalized `CustomerAddress` table if structured customer-address reuse is needed.
+3. Add backend filter support for admin orders only if needed.
+4. Add duplicate campaign product validation.
+5. Improve real pricing and producer import/backfill.
+6. Expand order/customer integration tests with a database-backed test environment.
+7. Add campaign closing workflow endpoints later.
 
 ## Related Documents
 
+- `docs/phases/phase-7-2-3-customer-identity-registration.md`
 - `docs/phases/phase-7-1-payment-reconciliation.md`
 - `docs/phases/phase-7-2-frontend-admin-ops-settlement-payments.md`
 - `docs/api-contract.md`
